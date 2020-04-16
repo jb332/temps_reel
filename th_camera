@@ -5,12 +5,40 @@ while()
 	:openCamera?;
 	:err = camera.Open();
 
-	if (err) then (camera_ok)	
+	if (err) then (camera_ok)
+		:positionAsk = false;	
 		:cameraOn = true;
 		:start_period(100 ms);
 		while (cameraOn)
 			:wait_next_period();
 			:img = camera.Grab();
+			if(askArena) then (true)
+				:arena = img.SearchArena();
+				if(arena == null) then (true)
+					:msg = new Message(NO_ACK);
+					:messageToMon!msg;
+				else (false)
+					:img.DrawArena(arena);
+					:msgImg = new MessageImg(MESSAGE_CAM_IMAGE, img);
+					:messageToMon!msgImg;
+					:arenaAck?;
+					if(arenaOk) then (true)
+						:save(arena);
+					endif
+				endif
+				:endAskArena?;
+				:askArena = false;
+			endif
+			if(askPosition) then (true)
+				:position = img.SearchRobot(arena).front();
+				:img.DrawRobot(position);
+				if(position == null) then (true)
+					:msgPos = new MessagePosition(MESSAGE_CAM_POSITION, (-1, -1));
+				else (false)
+					:msgPos = new MessagePosition(MESSAGE_CAM_POSITION, position);
+				endif
+				:messageToMon!msgPos;
+			endif
 			:msgImg = new MessageImg(MESSAGE_CAM_IMAGE, img);
 			:messageToMon!msgImg;
 		endwhile
