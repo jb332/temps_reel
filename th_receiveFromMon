@@ -40,7 +40,7 @@ while ()
 											:arenaAck!;
 										else (false)
 											if (msgRcv.CompareID(MESSAGE_CAM_POSITION_COMPUTE_START)) then (true)
-												:positionAsk = true;
+												:askPosition = true;
 											else (false)
 												if (msgRcv.CompareID(MESSAGE_CAM_POSITION_COMPUTE_STOP)) then (true)
 													:positionAsk = false;

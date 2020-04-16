@@ -26,7 +26,6 @@ while()
 						:save(arena);
 					endif
 				endif
-				:endAskArena?;
 				:askArena = false;
 			endif
 			if(askPosition) then (true)

@@ -15,8 +15,9 @@ while ()
 		:robotStarted = false;
 		:robot.write(new Message(STOP_MOVE));
 		:closeComRobot!;
-		:endAskArena!;
 		:cameroOn = false;
+		:arenaOk = false;
+		:arenaAck!;
 	endif
 endwhile
 stop
