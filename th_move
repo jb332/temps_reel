@@ -1,0 +1,25 @@
+@startuml
+skinparam monochrome true
+start
+:start_period(100 ms);
+while ()
+	:wait_next_period();
+	if (robotStarted) then (true)
+		if (cpt == 3) then (true)
+			:robotStarted = false;
+			:msgSend = new Message(MESSAGE_MONITOR_LOST);
+			:messageToMon!msgSend;
+			:closeComRobot!;
+		else (false)
+			:MessageID answerID = robot.Write(new Message(move));
+			if (answerID == MESSAGE_ANSWER_ROBOT_TIMEOUT) then (true)
+				:cpt++;
+			else (false)
+				:cpt = 0;
+			endif
+		endif
+	else (false)
+	endif
+endwhile
+stop
+@enduml

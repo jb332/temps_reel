@@ -1,0 +1,24 @@
+@startuml
+skinparam monochrome true
+start
+while()
+	:openCamera?;
+	:err = camera.Open();
+
+	if (err) then (camera_ok)	
+		:cameraOn = true;
+		:start_period(100 ms);
+		while (cameraOn)
+			:wait_next_period();
+			:img = camera.Grab();
+			:msgImg = new MessageImg(MESSAGE_CAM_IMAGE, img);
+			:messageToMon!msgImg;
+		endwhile
+		:camera.Close();
+	else (camera_error)
+		:msgSend = new Message(MESSAGE_ANSWER_NACK);
+		:messageToMon!msgImg;
+	endif
+endwhile
+stop
+@enduml

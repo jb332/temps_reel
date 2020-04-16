@@ -1,0 +1,12 @@
+@startuml
+skinparam monochrome true
+start
+while ()
+	:sendWd?;
+	if (robotStarted && withWd) then (true)
+		:robot.Write(new Message(DMB_RELOAD_WD));
+	else (false)
+	endif
+endwhile
+stop
+@enduml

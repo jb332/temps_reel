@@ -1,0 +1,14 @@
+@startuml
+skinparam monochrome true
+start
+:start_period(500 ms);
+while ()
+	:wait_next_period();
+	if (robotStarted) then (true)
+		:msgAns = robot.Write(new Message(DMB_GET_VBAT));
+		:messageToMon!msgAns;
+	else (false)
+	endif
+endwhile
+stop
+@enduml

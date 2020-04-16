@@ -1,0 +1,9 @@
+Table de correspondance :
+
+conception :        implémentation :
+
+<var_name>!         rt_sem_v(&sem_<var_name>) //ajoute une ressource
+<var_name>?         rt_sem_p(&sem_<var_name>, TM_INFINITE) //bloque indéfiniement tant qu'il n'y a pas de ressources dispo, consomme une ressource dès qu'elle est disponible
+
+messageToMon!msg    WriteInQueue(&q_messageToMon, msg)
+messageToMon?msg    msg = ReadInQueue(&q_messageToMon)

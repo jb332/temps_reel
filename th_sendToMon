@@ -1,0 +1,12 @@
+@startuml
+skinparam monochrome true
+start
+while ()
+	:serverOK?;
+	while (monitorCom)
+		:messageToMon?msg;
+		:monitor.Write(msg);
+	endwhile
+endwhile
+stop
+@enduml

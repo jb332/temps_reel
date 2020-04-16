@@ -1,0 +1,63 @@
+Description des classes du superviseur et de leurs méthodes associées :
+
+	- ComMonitor :
+		- Open : démarre le serveur !
+			- in : void
+			- out : int status
+		- AcceptClient : méthode bloquante qui attend une demande de connexion du moniteur
+			- in : void
+			- out : int socket
+		- Read : méthode bloquante qui écoute sur le socket créé par la méthode précédente pour recevoir des messages. (les messages reçus sont des instances de la classe Message décrite ci-après)
+			- in : void
+			- out : Message receivedMsg
+		- Write : envoi un message vers le moniteur
+			- in : Message msgToSend
+			- out : void
+
+	- ComRobot :
+		- Open : réserve un port série pour permettre la communication avec le robot
+			- in : string usart
+			- out : int fileDescriptor
+		- Write : envoi un message vers le robot
+			- in : Message msgToSend
+			- out : Message msgAnswer
+		- Close : coupe la communication avec le robot
+			- in : void
+			- out : int status
+
+	- Message :
+		- CompareID : vérifie si le message a l'ID donné en paramètre par une constante
+			- in : MessageID cmpID
+			- out : bool hasTheGivenID
+		- GetID : renvoie l'ID du message
+			- in : void
+			- out : MessageID msgID
+
+	- Camera :
+		- Open : donne accès à la caméra
+			- in : void
+			- out : int status
+		- Grab : capture une image
+			- in : void
+			- out : Image image
+		- Close : ferme la caméra
+			- in : void
+			- out : void
+
+	- Img :
+		- SearchArena : trouve l'arène sur une image récupérée par la caméra
+			- in : void
+			- out : Arena arenaFound
+		- DrawArena : dessine l'arène
+			- in : Arena arenaToDraw
+			- out : void
+		- SearchRobot : trouve la position des robots sur une image récupérée par la caméra (me demandez pas pourquoi "des", c'est comme ça dans l'implémentation)
+			- in : Arena arena
+			- out : list<Position> positionsOfTheRobots
+		- DrawRobot : dessine une flèche à la posiion du robot sur l'image
+			- in : Position positionOfTheRobotYouWantToDraw (trop court, non ?)
+			- out : void
+
+
+PS : A priori, il y a une fonction aussi :
+	- close_communication_robot : stoppe le médium de communication avec le robot

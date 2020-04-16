@@ -1,0 +1,17 @@
+@startuml
+skinparam monochrome true
+start
+while ()
+	:openComRobot?;
+	:err = robot.Open();
+	if (err) then (robot_ok)
+		:msgSend = new Message(MESSAGE_ANSWER_ACK);
+	else
+		:msgSend = new Message(MESSAGE_ANSWER_NACK);
+	endif
+	:messageToMon!msgSend;
+	:closeComRobot?;
+	:robot.Close();
+endwhile
+stop
+@enduml
