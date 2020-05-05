@@ -1,5 +1,5 @@
-#Temps réel :
+# Real time :
 
-Diagramme de communication entre les threads : [https://app.diagrams.net/#G1pPWTxIZZkV2jbPE7iIS8NuwjSt-2ppAX]
+Inter-thread communication AADL diagram : https://app.diagrams.net/#G1pPWTxIZZkV2jbPE7iIS8NuwjSt-2ppAX
 
-Pour lire les fichiers de diagrammes d'activité ("th_..."), rendez-vous sur ce site : [https://www.planttext.com/]
+To view activity diagrams pseudo-code files ("th_..."), go to : https://www.planttext.com/
