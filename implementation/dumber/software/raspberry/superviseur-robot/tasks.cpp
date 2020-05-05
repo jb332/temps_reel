@@ -473,3 +473,19 @@ Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
     return msg;
 }
 
+void Tasks::WatchdogTask(void* arg){
+    while(1){
+        rt_sem_p(&sem_sendWd, TM_INFINITE);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        bool robotStartedLocal = robotStarted; //local var to store shared global var state
+        rt_mutex_release(&mutex_robotStarted);
+        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
+        bool withWdLocal = withWd; //local var to store shared global var state
+        rt_mutex_release(&mutex_withWd);
+        if(robotStartedLocal && withWd){
+            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+        }
+
+    }
+}
+
