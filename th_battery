@@ -5,8 +5,9 @@ start
 while ()
 	:wait_next_period();
 	if (robotStarted) then (true)
-		:msgAns = robot.Write(new Message(DMB_GET_VBAT));
-		:messageToMon!msgAns;
+		:msgAns = robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET));
+		:msgMon = new MessageInt(MESSAGE_ROBOT_BATTERY_LEVEL, msgAns.GetValue);
+		:messageToMon!msgMon;
 	else (false)
 	endif
 endwhile
