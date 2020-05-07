@@ -23,15 +23,15 @@
 
 /**
  * Message ID defined for system communication
- * 
+ *
  * @brief List of available message ID
- * 
+ *
  */
 typedef enum {
     //Generic messages
     MESSAGE_EMPTY = 0,
     MESSAGE_LOG,
-    
+
     // Message containing answer (after robot command, or for monitor)
     MESSAGE_ANSWER_ACK,
     MESSAGE_ANSWER_NACK,
@@ -39,14 +39,14 @@ typedef enum {
     MESSAGE_ANSWER_ROBOT_UNKNOWN_COMMAND,
     MESSAGE_ANSWER_ROBOT_ERROR,
     MESSAGE_ANSWER_COM_ERROR,
-      
+
     // Messages specific to server
     MESSAGE_MONITOR_LOST,
-    
+
     // messages for serial communication with robot
     MESSAGE_ROBOT_COM_OPEN,
     MESSAGE_ROBOT_COM_CLOSE,
-         
+
     // Messages for camera from Monitor to Supervisor
     MESSAGE_CAM_OPEN,
     MESSAGE_CAM_CLOSE,
@@ -55,11 +55,11 @@ typedef enum {
     MESSAGE_CAM_ARENA_INFIRM,
     MESSAGE_CAM_POSITION_COMPUTE_START,
     MESSAGE_CAM_POSITION_COMPUTE_STOP,
-            
-    // Messages for camera from Supervisor to Monitor 
+
+    // Messages for camera from Supervisor to Monitor
     MESSAGE_CAM_POSITION,
     MESSAGE_CAM_IMAGE,
-            
+
     // Messages for robot
     MESSAGE_ROBOT_PING,
     MESSAGE_ROBOT_RESET,
@@ -92,9 +92,9 @@ using namespace std;
 
 /**
  * Base class for messaging
- * 
+ *
  * @brief Base class for messaging
- * 
+ *
  */
 class Message {
 public:
@@ -107,7 +107,7 @@ public:
      * Create a new, empty message
      */
     Message(MessageID id);
-    
+
     /**
      * Destroy message
      */
@@ -133,7 +133,7 @@ public:
     bool CompareID(MessageID id) {
         return (this->messageID == id) ? true:false;
     }
-    
+
     /**
      * Get message ID
      * @return Current message ID
@@ -165,12 +165,16 @@ public:
     virtual bool operator!=(const Message& msg) {
         return !(messageID == msg.messageID);
     }
+    void setTime(std::chrono::time_point t){time=t;}
+    std::chrono::time_point getTime(){return time;}
 
 protected:
     /**
      * Message identifier (@see MessageID)
      */
     MessageID messageID;
+
+    std::chrono::time_point time;
 
     /**
      * Verify if message ID is compatible with current message type
@@ -183,9 +187,9 @@ protected:
 
 /**
  * Message class for holding float value, based on Message class
- * 
+ *
  * @brief Float message class
- * 
+ *
  */
 class MessageInt : public Message {
 public:
@@ -254,7 +258,7 @@ public:
     virtual bool operator!=(const MessageInt& msg) {
         return !((messageID == msg.messageID) && (value == msg.value));
     }
-    
+
 protected:
     /**
      * Message integer value
@@ -271,9 +275,9 @@ protected:
 
 /**
  * Message class for holding string value, based on Message class
- * 
+ *
  * @brief String message class
- * 
+ *
  */
 class MessageString : public Message {
 public:
@@ -358,9 +362,9 @@ protected:
 
 /**
  * Message class for holding image, based on Message class
- * 
+ *
  * @brief Image message class
- * 
+ *
  */
 class MessageImg : public Message {
 public:
@@ -381,7 +385,7 @@ public:
      * Destroy Image message
      */
     virtual ~MessageImg();
-    
+
     /**
      * Set message ID
      * @param id Message ID
@@ -431,9 +435,9 @@ protected:
 
 /**
  * Message class for holding position, based on Message class
- * 
+ *
  * @brief Position message class
- * 
+ *
  */
 class MessagePosition : public Message {
 public:
@@ -499,7 +503,7 @@ protected:
 
 /**
  * Message class for holding battery level, based on Message class
- * 
+ *
  * @brief Battery message class
  * How to use:
  *  1. Ask the battery level to the robot:

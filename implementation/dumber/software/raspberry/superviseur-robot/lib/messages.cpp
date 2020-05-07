@@ -78,7 +78,6 @@ const string ANSWER_ID_STRING[] = {
     "Invalid or refused command",
     "Checksum error"
 };
-
 /**
  * Create a new, empty message
  */
@@ -410,7 +409,7 @@ void MessageBattery::SetLevel(BatteryLevel level) {
  */
 string MessageBattery::ToString() {
     string levelString;
-    
+
     switch (this->level) {
         case BATTERY_UNKNOWN:
             levelString="Unknown";
@@ -427,7 +426,7 @@ string MessageBattery::ToString() {
         default:
             levelString="Invalid";
     }
-    
+
     if (CheckID(this->messageID))
         return "Message: \"" + MESSAGE_ID_STRING[this->messageID] + "\"\nBattery level: \"" + levelString + "\"";
     else
@@ -503,7 +502,7 @@ void MessagePosition::SetPosition(Position& pos) {
     this->pos.center = pos.center;
     this->pos.direction = pos.direction;
 }
-    
+
 /**
  * Translate content of message into a string that can be displayed
  * @return A string describing message contents
