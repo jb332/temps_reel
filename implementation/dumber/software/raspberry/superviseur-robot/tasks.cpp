@@ -150,6 +150,10 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_watchdog, "th_watchdog", 0, PRIORITY_TMOVE, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -198,7 +202,10 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-
+    if (err = rt_task_start(&th_watchdog, (void(*)(void*)) & Tasks::WatchdogTask, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks launched" << endl << flush;
 }
 
@@ -231,24 +238,41 @@ void Tasks::ServerTask(void *arg) {
     /**************************************************************************************/
     /* The task server starts here                                                        */
     /**************************************************************************************/
-    rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
 
-    ////fonctionnalité 1
+    while(true) {
 
-    status = monitor.Open(SERVER_PORT);
-    rt_mutex_release(&mutex_monitor);
+		////fonctionnalité 1
+        rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
+        status = monitor.Open(SERVER_PORT);
+        rt_mutex_release(&mutex_monitor);
 
-    cout << "Open server on port " << (SERVER_PORT) << " (" << status << ")" << endl;
+        cout << "Open server on port " << (SERVER_PORT) << " (" << status << ")" << endl;
 
-    if (status < 0) throw std::runtime_error {
-        "Unable to start server on port " + std::to_string(SERVER_PORT)
-    };
+        if (status < 0) throw std::runtime_error {
+            "Unable to start server on port " + std::to_string(SERVER_PORT)
+        };
 
-    //  //fonctionnalité 2
+		    //  //fonctionnalité 2
 
-    monitor.AcceptClient(); // Wait the monitor client
-    cout << "Rock'n'Roll baby, client accepted!" << endl << flush;
-    rt_sem_broadcast(&sem_serverOk);
+        monitor.AcceptClient(); // Wait the monitor client
+        cout << "Rock'n'Roll baby, client accepted!" << endl << flush;
+        rt_mutex_acquire(&mutex_monitorCom, TM_INFINITE);
+        monitorCom = true;
+        rt_mutex_release(&mutex_monitorCom);
+        rt_sem_broadcast(&sem_serverOk);
+
+        rt_sem_p(&sem_monitorDisconnected, TM_INFINITE);
+        rt_mutex_acquire(&mutex_monitorCom, TM_INFINITE);
+        monitorCom = false;
+        rt_mutex_release(&mutex_monitorCom);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        robotStarted = false;
+        rt_mutex_release(&mutex_robotStarted);
+        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+        robot.Write(new Message(MESSAGE_ROBOT_STOP));
+        rt_mutex_release(&mutex_robot);
+        rt_sem_v(&sem_closeComRobot);
+    }
 }
 
 /**
@@ -422,6 +446,7 @@ void Tasks::MoveTask(void *arg) {
     int rs;
     int cpMove;
 
+    int cpt;
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
@@ -438,15 +463,31 @@ void Tasks::MoveTask(void *arg) {
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
-            rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            cpMove = move;
-            rt_mutex_release(&mutex_move);
 
-            cout << " move: " << cpMove;
+            if(cpt == 3) {
+                rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+                robotStarted = false;
+                rt_mutex_release(&mutex_robotStarted);
+                Message * msgSend = new Message(MESSAGE_MONITOR_LOST);
+                WriteInQueue(&q_messageToMon, msgSend);
+                rt_sem_v(&sem_closeComRobot);
+            } else {
+                rt_mutex_acquire(&mutex_move, TM_INFINITE);
+                cpMove = move;
+                rt_mutex_release(&mutex_move);
 
-            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            robot.Write(new Message((MessageID)cpMove));
-            rt_mutex_release(&mutex_robot);
+                cout << " move: " << cpMove;
+
+                rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+                Message * msgAns = robot.Write(new Message((MessageID)cpMove));
+                rt_mutex_release(&mutex_robot);
+
+                if(msgAns->GetID() == MESSAGE_ANSWER_ROBOT_TIMEOUT) {
+                    cpt++;
+                } else {
+                    cpt = 0;
+                }
+            }
         }
         cout << endl << flush;
     }
@@ -469,6 +510,22 @@ void Tasks::BatteryTask(void *arg) {
         }
     }
 }
+
+void Tasks::WatchdogTask(void* arg){
+    while(1){
+        rt_sem_p(&sem_sendWd, TM_INFINITE);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        bool robotStartedLocal = robotStarted; //local var to store shared global var state
+        rt_mutex_release(&mutex_robotStarted);
+        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
+        bool withWdLocal = withWd; //local var to store shared global var state
+        rt_mutex_release(&mutex_withWd);
+        if(robotStartedLocal && withWdLocal){
+            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+        }
+    }
+}
+
 
 /**
  * Write a message in a given queue
@@ -502,20 +559,3 @@ Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
 
     return msg;
 }
-
-void Tasks::WatchdogTask(void* arg){
-    while(1){
-        rt_sem_p(&sem_sendWd, TM_INFINITE);
-        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-        bool robotStartedLocal = robotStarted; //local var to store shared global var state
-        rt_mutex_release(&mutex_robotStarted);
-        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
-        bool withWdLocal = withWd; //local var to store shared global var state
-        rt_mutex_release(&mutex_withWd);
-        if(robotStartedLocal && withWd){
-            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
-        }
-
-    }
-}
-
