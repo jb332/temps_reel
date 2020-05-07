@@ -464,10 +464,12 @@ void Tasks::MoveTask(void *arg) {
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
 
+		//fonctionnalité 8
             if(cpt == 3) {
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
                 robotStarted = false;
                 rt_mutex_release(&mutex_robotStarted);
+                //fonctionnalité 9
                 Message * msgSend = new Message(MESSAGE_MONITOR_LOST);
                 WriteInQueue(&q_messageToMon, msgSend);
                 rt_sem_v(&sem_closeComRobot);
@@ -494,6 +496,7 @@ void Tasks::MoveTask(void *arg) {
 }
 
 void Tasks::BatteryTask(void *arg) {
+	//fonctionnalité 13
     rt_task_set_periodic(NULL, TM_NOW, 500000000);
     while (1) {
         rt_task_wait_period(NULL);
