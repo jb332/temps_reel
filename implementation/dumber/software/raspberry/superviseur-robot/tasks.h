@@ -79,6 +79,7 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_move;
     RT_TASK th_battery;
+    RT_TASK th_watchdog;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -144,6 +145,11 @@ private:
      * @brief Thread handling battery warnings.
      */
     void BatteryTask(void *arg);
+    
+    /**
+     * @brief 
+     */
+    void WatchdogTask(void* arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
