@@ -11,8 +11,8 @@ while ()
 			:messageToMon!msgSend;
 			:closeComRobot!;
 		else (false)
-			:MessageID answerID = robot.Write(new Message(move));
-			if (answerID == MESSAGE_ANSWER_ROBOT_TIMEOUT) then (true)
+			:Message answer = robot.Write(new Message(move));
+			if (answer->GetID == MESSAGE_ANSWER_ROBOT_TIMEOUT) then (true)
 				:cpt++;
 			else (false)
 				:cpt = 0;
