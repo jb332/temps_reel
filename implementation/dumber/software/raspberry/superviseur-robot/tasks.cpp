@@ -147,6 +147,10 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_watchdog, "th_watchdog", 0, PRIORITY_TMOVE, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -195,7 +199,10 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-
+    if (err = rt_task_start(&th_watchdog, (void(*)(void*)) & Tasks::WatchdogTask, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks launched" << endl << flush;
 }
 
@@ -392,6 +399,7 @@ void Tasks::StartRobotTask(void *arg) {
 void Tasks::MoveTask(void *arg) {
     int rs;
     int cpMove;
+    int cpt;
     
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
@@ -409,15 +417,30 @@ void Tasks::MoveTask(void *arg) {
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
-            rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            cpMove = move;
-            rt_mutex_release(&mutex_move);
-            
-            cout << " move: " << cpMove;
-            
-            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            robot.Write(new Message((MessageID)cpMove));
-            rt_mutex_release(&mutex_robot);
+            if(cpt == 3) {
+                rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+                robotStarted = false;
+                rt_mutex_release(&mutex_robotStarted);
+                Message * msgSend = new Message(MESSAGE_MONITOR_LOST);
+                WriteInQueue(&q_messageToMon, msgSend);
+                rt_sem_v(&sem_closeComRobot);
+            } else {
+                rt_mutex_acquire(&mutex_move, TM_INFINITE);
+                cpMove = move;
+                rt_mutex_release(&mutex_move);
+
+                cout << " move: " << cpMove;
+
+                rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+                Message * msgAns = robot.Write(new Message((MessageID)cpMove));
+                rt_mutex_release(&mutex_robot);
+                
+                if(msgAns->GetID() == MESSAGE_ANSWER_ROBOT_TIMEOUT) {
+                    cpt++;
+                } else {
+                    cpt = 0;
+                }
+            }
         }
         cout << endl << flush;
     }
@@ -440,6 +463,22 @@ void Tasks::BatteryTask(void *arg) {
         }
     }
 }
+
+void Tasks::WatchdogTask(void* arg){
+    while(1){
+        rt_sem_p(&sem_sendWd, TM_INFINITE);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        bool robotStartedLocal = robotStarted; //local var to store shared global var state
+        rt_mutex_release(&mutex_robotStarted);
+        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
+        bool withWdLocal = withWd; //local var to store shared global var state
+        rt_mutex_release(&mutex_withWd);
+        if(robotStartedLocal && withWdLocal){
+            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+        }
+    }
+}
+
 
 /**
  * Write a message in a given queue
@@ -472,20 +511,3 @@ Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
 
     return msg;
 }
-
-void Tasks::WatchdogTask(void* arg){
-    while(1){
-        rt_sem_p(&sem_sendWd, TM_INFINITE);
-        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-        bool robotStartedLocal = robotStarted; //local var to store shared global var state
-        rt_mutex_release(&mutex_robotStarted);
-        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
-        bool withWdLocal = withWd; //local var to store shared global var state
-        rt_mutex_release(&mutex_withWd);
-        if(robotStartedLocal && withWd){
-            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
-        }
-
-    }
-}
-
