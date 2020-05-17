@@ -8,8 +8,7 @@ while ()
 	else (false)
 		:msgAns = robot.Write(new Message(MESSAGE_ROBOT_START_WITHOUT_WD));
 	endif
-	:messageToMon!msgSend;
-	if (msgAns->getId()) then (MESSAGE_ANSWER_ACK)
+	if (msgAns->checkID(MESSAGE_ANSWER_ACK)) then (true)
 		:robotStarted = true;
 		:msgSend = new Message(MESSAGE_ANSWER_ACK);
 	else

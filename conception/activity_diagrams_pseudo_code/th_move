@@ -7,7 +7,7 @@ while ()
 	if (robotStarted) then (true)
 		if (cpt == 3) then (true)
 			:robotStarted = false;
-			:msgSend = new Message(MESSAGE_MONITOR_LOST);
+			:msgSend = new Message(MESSAGE_ANSWER_COM_ERROR);
 			:messageToMon!msgSend;
 			:closeComRobot!;
 		else (false)
