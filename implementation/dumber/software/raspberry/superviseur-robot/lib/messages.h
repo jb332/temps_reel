@@ -165,8 +165,14 @@ public:
     virtual bool operator!=(const Message& msg) {
         return !(messageID == msg.messageID);
     }
-    void setTime(std::chrono::time_point t){time=t;}
-    std::chrono::time_point getTime(){return time;}
+    
+    void setTime(std::chrono::time_point t) {
+        time=t;
+    }
+    
+    std::chrono::time_point getTime() {
+        return time;
+    }
 
 protected:
     /**

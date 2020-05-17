@@ -306,7 +306,7 @@ void Tasks::SendToMonTask(void* arg) {
         auto t_end = std::chrono::high_resolution_clock::now();
 		double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-msg->getTime()).count();
 		if(elapsed_time_ms > 10){
-			cerr << ERROR time to send message is more than 10ms ! : << elapsed_time_ms << endl << flush;
+			cerr << "ERROR time to send message is more than 10ms ! :" << elapsed_time_ms << endl << flush;
 		}
 
     }
@@ -366,7 +366,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
                 msgRcv->CompareID(MESSAGE_ROBOT_STOP)) {
 
             rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            move = msgRcv->GetID();
+            move = (int)(msgRcv->GetID());
             rt_mutex_release(&mutex_move);
         }
         delete(msgRcv); // mus be deleted manually, no consumer
@@ -403,6 +403,10 @@ void Tasks::OpenComRobot(void *arg) {
             msgSend = new Message(MESSAGE_ANSWER_ACK);
         }
         WriteInQueue(&q_messageToMon, msgSend); // msgSend will be deleted by sendToMon
+        rt_sem_p(&sem_closeComRobot, TM_INFINITE);
+        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+        robot.Close();
+        rt_mutex_acquire(&mutex_robot);
     }
 }
 
@@ -429,18 +433,17 @@ void Tasks::StartRobotTask(void *arg) {
         // fonctionnalites 10 et 11
         if(withWdLocal){
             msgSend = robot.Write(robot.StartWithWD());
-        }
-        else {
-        msgSend = robot.Write(robot.StartWithoutWD());
+        } else {
+            msgSend = robot.Write(robot.StartWithoutWD());
         }
         rt_mutex_release(&mutex_robot);
-        cout << msgSend->GetID();
+        cout << msgSend->ToString();
         cout << ")" << endl;
 
         cout << "Movement answer: " << msgSend->ToString() << endl << flush;
         WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
 
-        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
+        if (msgSend->CheckID(MESSAGE_ANSWER_ACK)) {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
@@ -455,7 +458,7 @@ void Tasks::MoveTask(void *arg) {
     int rs;
     int cpMove;
 
-    int cpt;
+    int cpt = 0;
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
@@ -479,7 +482,7 @@ void Tasks::MoveTask(void *arg) {
                 robotStarted = false;
                 rt_mutex_release(&mutex_robotStarted);
                 //fonctionnalité 9
-                Message * msgSend = new Message(MESSAGE_MONITOR_LOST);
+                Message * msgSend = new Message(MESSAGE_ANSWER_COM_ERROR);
                 WriteInQueue(&q_messageToMon, msgSend);
                 rt_sem_v(&sem_closeComRobot);
             } else {
@@ -493,7 +496,7 @@ void Tasks::MoveTask(void *arg) {
                 Message * msgAns = robot.Write(new Message((MessageID)cpMove));
                 rt_mutex_release(&mutex_robot);
 
-                if(msgAns->GetID() == MESSAGE_ANSWER_ROBOT_TIMEOUT) {
+                if(msgAns->CheckID(MESSAGE_ANSWER_ROBOT_TIMEOUT)) {
                     cpt++;
                 } else {
                     cpt = 0;
