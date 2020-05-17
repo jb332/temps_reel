@@ -443,7 +443,7 @@ void Tasks::StartRobotTask(void *arg) {
         cout << "Movement answer: " << msgSend->ToString() << endl << flush;
         WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
 
-        if (msgSend->CheckID(MESSAGE_ANSWER_ACK)) {
+        if (msgSend->GetID == MESSAGE_ANSWER_ACK) {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
@@ -496,7 +496,7 @@ void Tasks::MoveTask(void *arg) {
                 Message * msgAns = robot.Write(new Message((MessageID)cpMove));
                 rt_mutex_release(&mutex_robot);
 
-                if(msgAns->CheckID(MESSAGE_ANSWER_ROBOT_TIMEOUT)) {
+                if(msgAns->GetID() == MESSAGE_ANSWER_ROBOT_TIMEOUT) {
                     cpt++;
                 } else {
                     cpt = 0;
