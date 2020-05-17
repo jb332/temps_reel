@@ -422,8 +422,17 @@ void Tasks::StartRobotTask(void *arg) {
         Message * msgSend;
         rt_sem_p(&sem_startRobot, TM_INFINITE);
         cout << "Start robot without watchdog (";
+        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
+        bool withWdLocal = withWd;
+        rt_mutex_release(&mutex_withWd);
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+        // fonctionnalites 10 et 11
+        if(withWdLocal){
+            msgSend = robot.Write(robot.StartWithWD());
+        }
+        else {
         msgSend = robot.Write(robot.StartWithoutWD());
+        }
         rt_mutex_release(&mutex_robot);
         cout << msgSend->GetID();
         cout << ")" << endl;
