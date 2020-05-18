@@ -19,6 +19,7 @@
 #define __MESSAGES_H__
 
 #include <string>
+#include <ctime>
 #include "img.h"
 
 /**
@@ -166,11 +167,11 @@ public:
         return !(messageID == msg.messageID);
     }
     
-    void setTime(std::chrono::time_point t) {
+    void setTime(clock_t t) {
         time=t;
     }
     
-    std::chrono::time_point getTime() {
+    clock_t getTime() {
         return time;
     }
 
@@ -180,7 +181,7 @@ protected:
      */
     MessageID messageID;
 
-    std::chrono::time_point time;
+    clock_t time;
 
     /**
      * Verify if message ID is compatible with current message type

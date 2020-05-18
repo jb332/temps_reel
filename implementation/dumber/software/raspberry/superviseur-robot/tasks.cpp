@@ -19,7 +19,7 @@
 
 #include "tasks.h"
 #include <stdexcept>
-#include <chrono>
+#include <ctime>
 
 // Déclaration des priorités des taches
 #define PRIORITY_TSERVER 30
@@ -296,18 +296,15 @@ void Tasks::SendToMonTask(void* arg) {
         cout << "wait msg to send" << endl << flush;
         msg = ReadInQueue(&q_messageToMon);
 
-		std::chrono::time_point t_start = std::chrono::high_resolution_clock::now();
-
         cout << "Send msg to mon: " << msg->ToString() << endl << flush;
         rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
         monitor.Write(msg); // The message is deleted with the Write
         rt_mutex_release(&mutex_monitor);
 
-        auto t_end = std::chrono::high_resolution_clock::now();
-		double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-msg->getTime()).count();
-		if(elapsed_time_ms > 10){
-			cerr << "ERROR time to send message is more than 10ms ! :" << elapsed_time_ms << endl << flush;
-		}
+        double elapsed_time_ms = (double)((clock() - msg->getTime()) / CLOCKS_PER_SEC * 1000.0);
+	if(elapsed_time_ms > 10.0){
+            cerr << "ERROR time to send message is more than 10ms ! :" << elapsed_time_ms << endl << flush;
+	}
 
     }
 }
@@ -406,7 +403,7 @@ void Tasks::OpenComRobot(void *arg) {
         rt_sem_p(&sem_closeComRobot, TM_INFINITE);
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         robot.Close();
-        rt_mutex_acquire(&mutex_robot);
+        rt_mutex_release(&mutex_robot);
     }
 }
 
@@ -443,7 +440,7 @@ void Tasks::StartRobotTask(void *arg) {
         cout << "Movement answer: " << msgSend->ToString() << endl << flush;
         WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
 
-        if (msgSend->GetID == MESSAGE_ANSWER_ACK) {
+        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
@@ -549,7 +546,7 @@ void Tasks::WatchdogTask(void* arg){
  */
 void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
     int err;
-    msg->setTime(std::chrono::high_resolution_clock::now());
+    msg->setTime(clock());
     if ((err = rt_queue_write(queue, (const void *) &msg, sizeof ((const void *) &msg), Q_NORMAL)) < 0) {
         cerr << "Write in queue failed: " << strerror(-err) << endl << flush;
         throw std::runtime_error{"Error in write in queue"};
