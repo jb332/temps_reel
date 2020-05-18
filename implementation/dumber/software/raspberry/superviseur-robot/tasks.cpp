@@ -301,7 +301,7 @@ void Tasks::SendToMonTask(void* arg) {
         monitor.Write(msg); // The message is deleted with the Write
         rt_mutex_release(&mutex_monitor);
 
-        double elapsed_time_ms = (double)((clock() - msg->getTime()) / CLOCKS_PER_SEC * 1000.0);
+        double elapsed_time_ms = (double)(clock() - msg->getTime()) / CLOCKS_PER_SEC * 1000.0;
 	if(elapsed_time_ms > 10.0){
             cerr << "ERROR time to send message is more than 10ms ! :" << elapsed_time_ms << endl << flush;
 	}
