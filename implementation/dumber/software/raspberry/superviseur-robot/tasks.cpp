@@ -355,7 +355,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
             rt_mutex_release(&mutex_withWd);
             rt_sem_v(&sem_startRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_RELOAD_WD)) {
-            rt_sem_v(&sem_sendWd);
+            rt_sem_v(&sem_sendWd); //fonctionnalité 11
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
@@ -473,7 +473,7 @@ void Tasks::MoveTask(void *arg) {
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
 
-		//fonctionnalité 8
+		//fonctionnalité 8 (et 6)
             if(cpt == 3) {
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
                 robotStarted = false;
@@ -524,7 +524,7 @@ void Tasks::BatteryTask(void *arg) {
 }
 
 void Tasks::WatchdogTask(void* arg){
-    while(1){
+    while(1){ // fonctionnalité 11
         rt_sem_p(&sem_sendWd, TM_INFINITE);
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         bool robotStartedLocal = robotStarted; //local var to store shared global var state
