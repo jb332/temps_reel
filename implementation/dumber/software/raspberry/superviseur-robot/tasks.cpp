@@ -431,6 +431,7 @@ void Tasks::StartRobotTask(void *arg) {
         // fonctionnalité 10 et 11
         if(withWdLocal){
             msgSend = robot.Write(robot.StartWithWD());
+            rt_sem_v(&sem_sendWd);
         } else {
             msgSend = robot.Write(robot.StartWithoutWD());
         }
@@ -509,6 +510,7 @@ void Tasks::MoveTask(void *arg) {
 void Tasks::BatteryTask(void *arg) {
 	//fonctionnalité 13
     rt_task_set_periodic(NULL, TM_NOW, 500000000);
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     while (1) {
         rt_task_wait_period(NULL);
 
@@ -526,8 +528,13 @@ void Tasks::BatteryTask(void *arg) {
 }
 
 void Tasks::WatchdogTask(void* arg){
-    while(1){ // fonctionnalité 11
-        rt_sem_p(&sem_sendWd, TM_INFINITE);
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // fonctionnalité 11
+    rt_task_set_periodic(NULL, TM_NOW, 1900000000);
+    rt_sem_p(&sem_sendWd, TM_INFINITE);
+    while(1) {
+        rt_task_wait_period(NULL);
+        cout << "Le watchdog est demande a laccueil" << endl << flush;
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         bool robotStartedLocal = robotStarted; //local var to store shared global var state
         rt_mutex_release(&mutex_robotStarted);
@@ -536,6 +543,7 @@ void Tasks::WatchdogTask(void* arg){
         rt_mutex_release(&mutex_withWd);
         if(robotStartedLocal && withWdLocal){
             robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+        
         }
     }
 }
