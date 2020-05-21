@@ -379,6 +379,7 @@ void Tasks::OpenComRobot(void *arg) {
 
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
+    //fonctionnalité 7
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
@@ -427,7 +428,7 @@ void Tasks::StartRobotTask(void *arg) {
         bool withWdLocal = withWd;
         rt_mutex_release(&mutex_withWd);
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        // fonctionnalites 10 et 11
+        // fonctionnalité 10 et 11
         if(withWdLocal){
             msgSend = robot.Write(robot.StartWithWD());
         } else {
@@ -463,6 +464,7 @@ void Tasks::MoveTask(void *arg) {
     /**************************************************************************************/
     /* The task starts here                                                               */
     /**************************************************************************************/
+    //fonctionnalité 12
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
     while (1) {
