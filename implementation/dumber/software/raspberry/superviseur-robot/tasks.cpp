@@ -333,11 +333,28 @@ void Tasks::ReceiveFromMonTask(void *arg) {
         msgRcv = monitor.Read();
         cout << "Rcv <= " << msgRcv->ToString() << endl << flush;
 
-		//fonctionnalité 5
+		//fonctionnalité 5 et 6
 
         if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
-            cout << "Connection to monitor lost" << endl;
+            cout << "Connection to monitor lost" << endl << flush;
+            //gestion par semaphore par securite en doublon
             rt_sem_v(&sem_monitorDisconnected);
+            cout << "Arrêt du robot et de la camera" << endl << flush;
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            //stop robot
+            robot.Write(robot.Stop()); 
+            robot.Write(robot.Reset());//coupe la camera
+            rt_mutex_release(&mutex_robot);
+            cout << "Flag remis à l'état initial " << endl << flush;
+            //programme en l'état initial
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+             robotStarted = false;
+             rt_mutex_release(&mutex_robotStarted);
+            cout << "Fermeture du serveur de connexion " << endl << flush;
+             rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
+             //ferme le server
+            monitor.Close();
+             rt_mutex_release(&mutex_monitor);*/
             delete(msgRcv);
             exit(-1);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
@@ -423,16 +440,17 @@ void Tasks::StartRobotTask(void *arg) {
 
         Message * msgSend;
         rt_sem_p(&sem_startRobot, TM_INFINITE);
-        cout << "Start robot without watchdog (";
         rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
         bool withWdLocal = withWd;
         rt_mutex_release(&mutex_withWd);
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         // fonctionnalité 10 et 11
         if(withWdLocal){
+                             cout << "Start robot with watchdog "<<endl<<flush;
             msgSend = robot.Write(robot.StartWithWD());
             rt_sem_v(&sem_sendWd);
         } else {
+            cout << "Start robot without watchdog "<<endl<<flush;
             msgSend = robot.Write(robot.StartWithoutWD());
         }
         rt_mutex_release(&mutex_robot);
@@ -476,7 +494,7 @@ void Tasks::MoveTask(void *arg) {
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
 
-		//fonctionnalité 8 (et 6)
+		//fonctionnalité 8 
             if(cpt == 3) {
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
                 robotStarted = false;
@@ -530,19 +548,21 @@ void Tasks::BatteryTask(void *arg) {
 void Tasks::WatchdogTask(void* arg){
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // fonctionnalité 11
-    rt_task_set_periodic(NULL, TM_NOW, 1900000000);
+    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
     rt_sem_p(&sem_sendWd, TM_INFINITE);
     while(1) {
         rt_task_wait_period(NULL);
-        cout << "Le watchdog est demande a laccueil" << endl << flush;
-        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+               rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         bool robotStartedLocal = robotStarted; //local var to store shared global var state
         rt_mutex_release(&mutex_robotStarted);
         rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
         bool withWdLocal = withWd; //local var to store shared global var state
         rt_mutex_release(&mutex_withWd);
         if(robotStartedLocal && withWdLocal){
-            robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+             cout << "rechargement du watchdog" << endl << flush;
+             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+                robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
+             rt_mutex_release(&mutex_robot);
         
         }
     }
