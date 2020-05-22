@@ -261,6 +261,7 @@ void Tasks::ServerTask(void *arg) {
         rt_mutex_release(&mutex_monitorCom);
         rt_sem_broadcast(&sem_serverOk);
 
+        //secu doublon fonctionnalité 6
         rt_sem_p(&sem_monitorDisconnected, TM_INFINITE);
         rt_mutex_acquire(&mutex_monitorCom, TM_INFINITE);
         monitorCom = false;
@@ -297,14 +298,15 @@ void Tasks::SendToMonTask(void* arg) {
         msg = ReadInQueue(&q_messageToMon);
 
         cout << "Send msg to mon: " << msg->ToString() << endl << flush;
-        rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
-        monitor.Write(msg); // The message is deleted with the Write
-        rt_mutex_release(&mutex_monitor);
-
+        
         double elapsed_time_ms = (double)(clock() - msg->getTime()) / CLOCKS_PER_SEC * 1000.0;
 	if(elapsed_time_ms > 10.0){
             cerr << "ERROR time to send message is more than 10ms ! :" << elapsed_time_ms << endl << flush;
 	}
+                
+        rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
+        monitor.Write(msg); // The message is deleted with the Write
+        rt_mutex_release(&mutex_monitor);
 
     }
 }
@@ -329,8 +331,8 @@ void Tasks::ReceiveFromMonTask(void *arg) {
     cout << "Received message from monitor activated" << endl << flush;
 
     while (1) {
-
-        msgRcv = monitor.Read();
+         msgRcv = monitor.Read();
+       // msgRcv = monitor.Read();
         cout << "Rcv <= " << msgRcv->ToString() << endl << flush;
 
 		//fonctionnalité 5 et 6
@@ -354,7 +356,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
              rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
              //ferme le server
             monitor.Close();
-             rt_mutex_release(&mutex_monitor);*/
+             rt_mutex_release(&mutex_monitor);
             delete(msgRcv);
             exit(-1);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
@@ -383,7 +385,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
             move = (int)(msgRcv->GetID());
             rt_mutex_release(&mutex_move);
         }
-        delete(msgRcv); // mus be deleted manually, no consumer
+        delete msgRcv; // must be deleted manually, no consumer
     }
 }
 
@@ -443,28 +445,28 @@ void Tasks::StartRobotTask(void *arg) {
         rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
         bool withWdLocal = withWd;
         rt_mutex_release(&mutex_withWd);
-        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         // fonctionnalité 10 et 11
         if(withWdLocal){
                              cout << "Start robot with watchdog "<<endl<<flush;
-            msgSend = robot.Write(robot.StartWithWD());
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            msgSend = robot.Write(robot.StartWithWD()->Copy());
+                    rt_mutex_release(&mutex_robot);
             rt_sem_v(&sem_sendWd);
         } else {
             cout << "Start robot without watchdog "<<endl<<flush;
-            msgSend = robot.Write(robot.StartWithoutWD());
+                    rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            msgSend = robot.Write(robot.StartWithoutWD()->Copy());
+                    rt_mutex_release(&mutex_robot);
         }
-        rt_mutex_release(&mutex_robot);
-        cout << msgSend->ToString();
-        cout << ")" << endl;
-
         cout << "Movement answer: " << msgSend->ToString() << endl << flush;
-        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
-
         if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-            robotStarted = 1;
+            robotStarted = true;
             rt_mutex_release(&mutex_robotStarted);
         }
+        
+        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+
     }
 }
 
@@ -527,7 +529,7 @@ void Tasks::MoveTask(void *arg) {
 
 void Tasks::BatteryTask(void *arg) {
 	//fonctionnalité 13
-    rt_task_set_periodic(NULL, TM_NOW, 500000000);
+   rt_task_set_periodic(NULL, TM_NOW, 500000000);
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     while (1) {
         rt_task_wait_period(NULL);
@@ -538,33 +540,33 @@ void Tasks::BatteryTask(void *arg) {
 
         if(robotStartedLocal) {
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            MessageBattery * msgBatLvl = dynamic_cast<MessageBattery *>(robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET)));
-            rt_mutex_release(&mutex_robot);
+            Message * msgBatLvl = robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET));//dynamic_cast<MessageBattery *>(
             WriteInQueue(&q_messageToMon, msgBatLvl);
+            rt_mutex_release(&mutex_robot);
         }
     }
 }
 
 void Tasks::WatchdogTask(void* arg){
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // fonctionnalité 11
-    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
-    rt_sem_p(&sem_sendWd, TM_INFINITE);
-    while(1) {
-        rt_task_wait_period(NULL);
-               rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-        bool robotStartedLocal = robotStarted; //local var to store shared global var state
-        rt_mutex_release(&mutex_robotStarted);
-        rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
+     rt_mutex_acquire(&mutex_withWd, TM_INFINITE);
         bool withWdLocal = withWd; //local var to store shared global var state
         rt_mutex_release(&mutex_withWd);
-        if(robotStartedLocal && withWdLocal){
-             cout << "rechargement du watchdog" << endl << flush;
+        if(withWdLocal)
+      cout<<endl<<endl << "rechargement du watchdog activé" << endl<<endl << flush;
+    // fonctionnalité 11
+    //rt_task_set_periodic(NULL, TM_NOW, 100);
+
+    while(1) {
+        //rt_task_wait_period(NULL);
+          rt_sem_p(&sem_sendWd, TM_INFINITE);
+        /*       rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        bool robotStartedLocal = robotStarted; //local var to store shared global var state
+        rt_mutex_release(&mutex_robotStarted);*/
              rt_mutex_acquire(&mutex_robot, TM_INFINITE);
                 robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
              rt_mutex_release(&mutex_robot);
-        
-        }
+
     }
 }
 
@@ -590,9 +592,9 @@ void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
  */
 Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
     int err;
-    Message *msg;
+    Message *msg=new Message();
 
-    if ((err = rt_queue_read(queue, &msg, sizeof ((void*) &msg), TM_INFINITE)) < 0) {
+    if ((err = rt_queue_read(queue,((void*) &msg), sizeof ((void*) &msg), TM_INFINITE)) < 0) {
         cout << "Read in queue failed: " << strerror(-err) << endl << flush;
         throw std::runtime_error{"Error in read in queue"};
     }/** else {
