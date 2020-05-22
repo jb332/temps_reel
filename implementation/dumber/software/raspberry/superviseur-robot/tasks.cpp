@@ -344,7 +344,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
             cout << "Arrêt du robot et de la camera" << endl << flush;
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             //stop robot
-            robot.Write(robot.Stop()); 
+            robot.Write(robot.Stop());
             robot.Write(robot.Reset());//coupe la camera
             rt_mutex_release(&mutex_robot);
             cout << "Flag remis à l'état initial " << endl << flush;
@@ -496,7 +496,7 @@ void Tasks::MoveTask(void *arg) {
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
 
-		//fonctionnalité 8 
+		//fonctionnalité 8
             if(cpt == 3) {
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
                 robotStarted = false;
@@ -567,6 +567,10 @@ void Tasks::WatchdogTask(void* arg){
                 robot.Write(new Message(MESSAGE_ROBOT_RELOAD_WD));
              rt_mutex_release(&mutex_robot);
 
+<<<<<<< HEAD
+=======
+        }
+>>>>>>> 8c16e7269fa7c37649d38e69c14aca718c5a827c
     }
 }
 
